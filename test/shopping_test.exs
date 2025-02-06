@@ -46,8 +46,7 @@ defmodule ShoppingTest do
     assert Shopping.check_out("GR1,CF1,SR1,CF1,CF1,CF1") == 3806
   end
 
-  # 3 SR1 2 GR1 3 CF1   
-  # test "gives the right price for a basket with all three discounts" do
-  #   assert Shopping.check_out("SR1,SR1,GR1,SR1,GR1,CF1,CF1,CF1") ==
-  # end
+  test "gives the right price for a basket with all three discounts" do
+    assert Shopping.check_out("SR1,SR1,GR1,SR1,GR1,CF1,CF1,CF1") == 3907
+  end
 end
