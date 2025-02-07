@@ -4,7 +4,7 @@ defmodule Cashier do
   @price_list %{:GR1 => 311, :SR1 => 500, :CF1 => 1123}
   # Client
 
-  def start_link(basket) do
+  def start_link(basket) when is_list basket do
     GenServer.start_link(__MODULE__, basket)
   end
 
@@ -31,7 +31,6 @@ defmodule Cashier do
     total = Map.values(processed)
               |> Enum.map(fn {_, product_total} -> product_total end)
               |> Enum.sum()
-
     {:reply, total, {processed, []}}
   end
 

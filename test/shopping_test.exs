@@ -1,6 +1,11 @@
 defmodule ShoppingTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest Shopping
+
+  setup_all do
+    Shopping.start(0,0)
+    :ok
+  end
 
   test "gives the right price for a single GR1" do
     assert Shopping.check_out("GR1") == 311

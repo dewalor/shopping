@@ -12,12 +12,24 @@ defmodule Shopping do
       311
 
   """
-  def check_out("") do
+  use Application
+
+  def start(_type, _args) do
+    children = [
+      {DynamicSupervisor, name: CashierSupervisor, strategy: :one_for_one}
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+
+  def check_out(basket: "") do
     0
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
-    {:ok, pid} = GenServer.start_link(Cashier, String.split(basket, ",", trim: true))
+    basket = String.split(basket, ",", trim: true)
+    {:ok, pid} = CashierSupervisor.start_child({Cashier, basket})
+
     GenServer.call(pid, :total)
   end
 end
