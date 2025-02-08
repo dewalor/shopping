@@ -61,7 +61,10 @@ defmodule Shopping do
     price = get_price!(:CF1)
     if quantity >= 3 do
       quantity * price
-        |> Decimal.mult(2) |> Decimal.div(3) |> Decimal.round(0, :half_up) |> Decimal.to_integer()
+        |> Decimal.mult(2)
+        |> Decimal.div(3)
+        |> Decimal.round(0, :half_up)
+        |> Decimal.to_integer()
     else
       quantity * price
     end

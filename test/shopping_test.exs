@@ -84,6 +84,34 @@ defmodule ShoppingTest do
     assert Shopping.check_out(reorder(basket)) == "£39.07"
   end
 
+  test "gives the right total price in GBP pennies when adding the second coffee" do
+    assert Shopping.calculate_total_price(:CF1, 2, 1123) == 2246
+  end
+
+  test "gives the right total price in GBP pennies when adding the third coffee" do
+    assert Shopping.calculate_total_price(:CF1, 3, 2246) == 2246
+  end
+
+  test "gives the right total price in GBP pennies when adding the fourth coffee" do
+    assert Shopping.calculate_total_price(:CF1, 4, 2246) == 2995
+  end
+
+  test "gives the right total price in GBP pennies when adding the third green tea" do
+    assert Shopping.calculate_total_price(:GR1, 3, 311) == 622
+  end
+
+  test "gives the right total price in GBP pennies when adding the fourth green tea" do
+    assert Shopping.calculate_total_price(:GR1, 4, 622) == 622
+  end
+
+  test "gives the right total price in GBP pennies when adding the third strawberry" do
+    assert Shopping.calculate_total_price(:SR1, 3, 1000) == 1350
+  end
+
+  test "gives the right total price in GBP pennies when adding the fourth strawberry" do
+    assert Shopping.calculate_total_price(:SR1, 4, 1350) == 1800
+  end
+
   defp reorder(items) when is_binary items do
     String.split(items, ",", trim: true)
               |> Enum.shuffle()
