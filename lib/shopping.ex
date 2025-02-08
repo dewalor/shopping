@@ -30,7 +30,6 @@ defmodule Shopping do
   def check_out(basket) when Kernel.is_binary(basket) do
     basket = String.split(basket, ",", trim: true) |> validate()
     {:ok, pid} = CashierSupervisor.start_child({Cashier, basket})
-
     GenServer.call(pid, :total)
   end
 

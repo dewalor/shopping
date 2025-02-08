@@ -58,7 +58,7 @@ defmodule Cashier do
 
   @impl true
   def handle_info({:EXIT, _from, reason}, state) do
-    {:stop, reason, state} # see GenServer docs for other return types
+    {:stop, reason, state}
   end
 
   @impl true
