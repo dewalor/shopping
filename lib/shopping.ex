@@ -24,13 +24,18 @@ defmodule Shopping do
   end
 
   def check_out(basket: "") do
-    0
+    "0"
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
     basket = String.split(basket, ",", trim: true) |> validate()
     {:ok, pid} = CashierSupervisor.start_child({Cashier, basket})
-    GenServer.call(pid, :total)
+    reply = GenServer.call(pid, :total)
+
+    case reply do
+      x when is_integer(x) -> to_GBP_string(x)
+      error -> error
+    end
   end
 
   defp validate(products) when is_list products do
@@ -39,5 +44,14 @@ defmodule Shopping do
     end)
 
     Enum.filter(products, &(&1 in @products))
+  end
+
+  defp to_GBP_string(pennies) when pennies > 0 do
+    {string_1, string_2} = Integer.to_string(pennies) |> String.split_at(-2)
+    "£" <> string_1 <> "." <> string_2
+  end
+
+  defp to_GBP_string(0) do
+    "0"
   end
 end
