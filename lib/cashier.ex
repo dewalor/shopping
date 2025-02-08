@@ -19,7 +19,7 @@ defmodule Cashier do
   # Server (callbacks)
 
   @impl true
-  def init(basket) do
+  def init(basket) when is_list basket do
     # the first element is a map of products in the basket that have been processed/checked out
     # the second element is the list of products in the basket that haven't been checked out, i.e. unprocessed
     initial_state = {%{}, basket}
@@ -35,8 +35,7 @@ defmodule Cashier do
   end
 
   @impl true
-  def handle_call(:total, from, {processed, [head | tail] = _unprocessed}) do
-    product = String.to_existing_atom(String.trim(head))
+  def handle_call(:total, from, {processed, [product | tail] = _unprocessed}) do
     # processed = %{GR1: {1, 311}} or %{product: {total quantity, total price}}
     price = Map.fetch!(@price_list, product)
     # discount = calculate_discount(product, processed, price)
@@ -55,6 +54,17 @@ defmodule Cashier do
   @impl true
   def handle_call(:subtract, _from, {total, discount, unprocessed_items}) do
     {:reply, discount, {total, unprocessed_items}}
+  end
+
+  @impl true
+  def handle_info({:EXIT, _from, reason}, state) do
+    {:stop, reason, state} # see GenServer docs for other return types
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    #Logger.info "terminating #{reason}"
+    state
   end
 
   defp calculate_total_price(:CF1, quantity, _, price) do

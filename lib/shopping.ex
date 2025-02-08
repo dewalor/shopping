@@ -13,6 +13,7 @@ defmodule Shopping do
 
   """
   use Application
+  @products [:GR1, :SR1, :CF1]
 
   def start(_type, _args) do
     children = [
@@ -27,9 +28,17 @@ defmodule Shopping do
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
-    basket = String.split(basket, ",", trim: true)
+    basket = String.split(basket, ",", trim: true) |> validate()
     {:ok, pid} = CashierSupervisor.start_child({Cashier, basket})
 
     GenServer.call(pid, :total)
+  end
+
+  defp validate(products) when is_list products do
+    products = Enum.map(products, fn product ->
+      String.to_existing_atom(product)
+    end)
+
+    Enum.filter(products, &(&1 in @products))
   end
 end
