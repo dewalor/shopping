@@ -2,17 +2,17 @@ defmodule ShoppingTest do
   use ExUnit.Case, async: true
   doctest Shopping
 
-  test "raises on an invalid basket data type" do
+  test "raises on an invalid basket data type at checkout" do
     assert_raise FunctionClauseError, fn ->
       Shopping.check_out(["SR1"])
     end
   end
 
-  test "raises on an invalid product list" do
-     assert_raise FunctionClauseError, fn ->
-      Shopping.check_out(["SR1oops"])
+  test "raises on an invalid product list at checkout" do
+     assert_raise ArgumentError, fn ->
+      Shopping.check_out("SR1oops")
      end
-   end
+  end
 
   test "returns 0 for an empty basket" do
     assert Shopping.check_out("") == "0"
