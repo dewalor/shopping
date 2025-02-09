@@ -2,15 +2,15 @@ defmodule CashierState do
   use Agent
   require Logger
 
-  def start_link([name]= initial_value) do
-    Agent.start_link(fn -> initial_value end, name: name)
+  def start_link([name]) do
+    Agent.start_link(fn -> %{processed: %{}, unprocessed: [], state_pid: self()} end, name: name)
   end
 
-  def get() do
-    Agent.get(__MODULE__, & &1)
+  def get(pid) do
+    Agent.get(pid, fn state -> state end)
   end
 
-  def update(new_value) do
-    Agent.update(__MODULE__, fn _state -> new_value end)
+  def update(pid, {processed, unprocessed, state_pid}) do
+    Agent.update(pid, fn _state -> %{processed: processed, unprocessed: unprocessed, state_pid: state_pid} end)
   end
 end

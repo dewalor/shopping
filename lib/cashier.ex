@@ -26,12 +26,11 @@ defmodule Cashier do
 
   @impl true
   def handle_call(:total, _from, {processed, [], state_pid}) do
-
-
-
     total = Map.values(processed)
               |> Enum.map(fn {_, product_total} -> product_total end)
               |> Enum.sum()
+
+    CashierState.update(state_pid, {processed, [], state_pid})
     {:reply, total, {processed, [], state_pid}}
   end
 
@@ -45,27 +44,20 @@ defmodule Cashier do
                   fn {qty, total_price} -> {qty + 1, Shopping.calculate_total_price(product, qty + 1, total_price)} end
                 )
                 new_state = {processed, tail, state_pid}
-                Agent.get_and_update(state_pid, fn state -> {state, new_state} end)
-                handle_call(:total, from, {processed, tail, state_pid})
+
+                CashierState.update(state_pid, {processed, tail, state_pid})
+                handle_call(:total, from, new_state)
   end
 
   @impl true
-  def handle_info({:EXIT, _from, reason}, state) do
+  def handle_info({_, _from, reason}, state) do
     {:stop, reason, state}
   end
 
   @impl true
-  def handle_info({:kill, _from, reason}, state) do
-    {:stop, reason, state}
-  end
-
-  @impl true
-  def terminate(reason, state) do
-    #{_basket, _state_pid} = _state
-    # state_pid = state_pid
-    #                 |> :erlang.pid_to_list()
-    #                 |> to_string()
-    Logger.info "terminating #{reason} "
-    state
+  def terminate(reason, {_processed, _unprocessed, state_pid} = new_state) do
+    Logger.info "terminating #{reason}"
+    CashierState.update(state_pid, new_state)
+    {:no_reply, new_state}
   end
 end
