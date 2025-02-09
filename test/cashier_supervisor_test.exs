@@ -7,9 +7,8 @@ defmodule CashierSupervisorTest do
   end
 
   test "does not process invalid product list" do
-    case CashierSupervisor.start_child({Cashier, "GR1"}) do
-      {:ok, pid} when is_pid(pid) ->  flunk("this should not have happened")
-      _ -> :ok
+    assert_raise FunctionClauseError, fn ->
+      {:ok, _} = CashierSupervisor.start_child({Cashier, "GR1"})
     end
   end
 

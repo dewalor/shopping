@@ -18,6 +18,7 @@ defmodule Shopping do
 
   def start(_type, _args) do
     children = [
+      {DynamicSupervisor, name: CashierStateSupervisor, strategy: :one_for_one},
       {DynamicSupervisor, name: CashierSupervisor, strategy: :one_for_one}
     ]
 
@@ -30,7 +31,8 @@ defmodule Shopping do
 
   def check_out(basket) when Kernel.is_binary(basket) do
     basket = String.split(basket, ",", trim: true) |> validate()
-    {:ok, pid} = CashierSupervisor.start_child({Cashier, basket})
+    {:ok, state_pid} = CashierStateSupervisor.start_child({CashierState, []})
+    {:ok, pid} = CashierSupervisor.start_child({Cashier, [basket, state_pid]})
     reply = GenServer.call(pid, :total)
 
     case reply do
