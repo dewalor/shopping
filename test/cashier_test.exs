@@ -14,11 +14,13 @@ defmodule CashierTest do
       end
   end
 
-  test "terminates" do
+  test "stores state when it terminates" do
     {:ok, state_pid_2} = CashierStateSupervisor.start_child({CashierState, name: String.to_atom("CashierState293")})
-    {:ok, pid} = CashierSupervisor.start_child({Cashier, [[:GR1], state_pid_2]})
+    {:ok, pid} = CashierSupervisor.start_child({Cashier, [[:CF1], state_pid_2]})
     GenServer.call(pid, :total)
 
     GenServer.stop(pid)
+    state = CashierState.get(state_pid_2)
+    assert Map.get(state, :processed) == %{CF1: {1,1123}}
   end
 end
