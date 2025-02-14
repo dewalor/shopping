@@ -9,20 +9,16 @@ defmodule Shopping do
   ## Examples
 
       iex> Shopping.check_out("GR1")
-      311
+      "£3.11"
 
   """
   use Application
+  alias Shopping.{Supervisor, Cashier}
   # prices are in GBP pence, e.g. 311 = £3.11
   @price_list %{:GR1 => 311, :SR1 => 500, :CF1 => 1123}
 
   def start(_type, _args) do
-    children = [
-      {DynamicSupervisor, name: CashierStateSupervisor, strategy: :one_for_one},
-      {DynamicSupervisor, name: CashierSupervisor, strategy: :one_for_one}
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one)
+    Supervisor.start_link()
   end
 
   def check_out(basket: "") do
@@ -30,18 +26,16 @@ defmodule Shopping do
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
-    basket = String.split(basket, ",", trim: true) |> validate()
-    {:ok, state_pid} = CashierStateSupervisor.start_child({CashierState, []})
-    {:ok, pid} = CashierSupervisor.start_child({Cashier, [basket, state_pid]})
-    reply = GenServer.call(pid, :total)
-
+    basket = String.split(basket, ",", trim: true) |> validate_and_to_atom()
+    {:ok, pid} = Cashier.start
+    reply = Cashier.total(pid, basket)
     case reply do
       x when is_integer(x) -> to_GBP_string(x)
       error -> error
     end
   end
 
-  defp validate(products) when is_list products do
+  defp validate_and_to_atom(products) when is_list products do
     products = Enum.map(products, fn product ->
       String.to_existing_atom(product)
     end)
