@@ -19,27 +19,44 @@ defmodule Shopping.Dispatcher do
     {:ok, state}
   end
 
-  def receive_basket(basket) do
-    GenServer.cast(__MODULE__, {:receive_basket, basket})
+  def scan_basket(basket) do
+    GenServer.call(__MODULE__, {:scan_basket, basket})
   end
 
-  def handle_cast({:receive_basket, basket}, state) do
+  # def get_total(basket_id) do
+  #   GenServer.call(__MODULE__, {:get_total, basket_id})
+  # end
+
+  def handle_call({:scan_basket, basket}, _from, state) do
     IO.puts "received basket #{inspect basket} "
 
-    state = case CashierPool.available_cashier do
+    {reply, state} = case CashierPool.available_cashier do
       {:ok, cashier} ->
         IO.puts "cashier #{inspect cashier} acquired, assigning basket"
         Process.monitor(cashier)
+
         state = assign_basket(state, basket, cashier)
         CashierPool.flag_cashier_busy(cashier)
-        Cashier.total(cashier, basket)
-        state
+        total = Cashier.total(cashier, basket)
+        {total, state}
       {:error, message} ->
         IO.puts "#{message}"
         state = buffer_basket(state, basket)
         IO.puts "buffering basket #{inspect basket}"
-        state
+        {message, state}
     end
+
+    {:reply, reply, state}
+  end
+
+  def handle_info({:basket_totaled, totaled_basket}, %{assignments: assignments, checked_out_baskets: checked_out_baskets, baskets_buffer: baskets_buffer}) do
+    checked_out_basket =
+       assignments
+       |> Enum.filter(fn({basket, cashier}) -> basket == totaled_basket.basket_id && cashier == totaled_basket.cashier end)
+
+    assignments = assignments -- checked_out_basket
+    checked_out_baskets = [ totaled_basket | checked_out_baskets]
+    state = %{assignments: assignments, checked_out_baskets: checked_out_baskets, baskets_buffer: baskets_buffer}
 
     {:noreply, state}
   end
@@ -49,7 +66,7 @@ defmodule Shopping.Dispatcher do
 
     state = if Kernel.length(state.baskets_buffer) > 0 do
       [ basket | remaining_baskets] = state.baskets_buffer
-      receive_basket(basket)
+      scan_basket(basket)
       %{state | baskets_buffer: remaining_baskets}
     else
       state
@@ -58,6 +75,7 @@ defmodule Shopping.Dispatcher do
     {:noreply, state}
   end
 
+  #TODO
   def handle_info({:DOWN, _ref, :process, cashier, reason}, state) do
     IO.puts "cashier #{inspect cashier} went down. details: #{inspect reason}"
     failed_assignments = filter_by_cashier(cashier, state.assignments)
@@ -65,13 +83,15 @@ defmodule Shopping.Dispatcher do
     CashierPool.remove_cashier(cashier)
     assignments = state.assignments -- failed_assignments
     state = %{state | assignments: assignments}
-    receive_basket(failed_basket)
+    scan_basket(failed_basket)
     {:noreply, state}
   end
 
   defp assign_basket(state, basket, cashier) do
-    assignments = state.assignments ++ {basket, cashier}
-    %{state | assignments: assignments}
+    Map.update(state, :assignments, [{basket, cashier}], fn assignments ->
+      assignments ++ {basket, cashier}
+     end)
+    state
   end
 
   defp buffer_basket(state, basket) do

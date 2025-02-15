@@ -13,7 +13,7 @@ defmodule Shopping do
 
   """
   use Application
-  alias Shopping.{Supervisor, Cashier}
+  alias Shopping.{Supervisor, Dispatcher}
   # prices are in GBP pence, e.g. 311 = £3.11
   @price_list %{:GR1 => 311, :SR1 => 500, :CF1 => 1123}
 
@@ -26,10 +26,12 @@ defmodule Shopping do
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
-    basket = String.split(basket, ",", trim: true) |> validate_and_to_atom()
-    {:ok, pid} = Cashier.start
-    reply = Cashier.total(pid, basket)
-    case reply do
+    items = String.split(basket, ",", trim: true) |> validate_and_to_atom()
+
+    basket_id = generate_basket_id()
+    total = Dispatcher.scan_basket(%{items: items, basket_id: basket_id})
+
+    case total do
       x when is_integer(x) -> to_GBP_string(x)
       error -> error
     end
@@ -41,6 +43,14 @@ defmodule Shopping do
     end)
 
     Enum.filter(products, &(&1 in Map.keys(@price_list)))
+  end
+
+  defp generate_basket_id() do
+    :crypto.strong_rand_bytes(16)
+    |> Base.url_encode64()
+    |> String.replace(~r/[-_\=]/, "")
+    |> Kernel.binary_part(0, 16)
+
   end
 
   defp to_GBP_string(pennies) when pennies > 0 do

@@ -4,7 +4,8 @@ defmodule CashierTest do
 
   test "gives the right total when given a valid product list" do
     {:ok, pid} = Cashier.start
-    assert Cashier.total(pid, [:GR1,:GR1]) == 311
+    basket_id = :rand.uniform(9999999999999999)
+    assert Cashier.total(pid, %{items: [:GR1,:GR1], basket_id: basket_id}) == 311
   end
 
   #TODO
