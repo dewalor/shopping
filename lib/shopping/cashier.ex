@@ -22,7 +22,7 @@ defmodule Shopping.Cashier do
               |> Enum.map(fn {_, product_total} -> product_total end)
               |> Enum.sum()
 
- #   send(Dispatcher, {:basket_totaled, %{total: total, processed: processed, basket_id: basket_id}})
+    send(Dispatcher, {:basket_totaled, %{total: total, processed: processed, basket_id: basket_id}})
     send(Dispatcher, {:cashier_idle, self()})
     {:reply, total, %{processed: processed, unprocessed: [], basket_id: basket_id}}
   end

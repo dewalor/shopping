@@ -76,8 +76,10 @@ defmodule Shopping.CashierPool do
       state.cashiers
       |> Enum.find_index(&match?({^cashier, _}, &1))
 
-    cashiers = List.replace_at(state.cashiers, cashier_index, {cashier, flag})
-    state = %{state | cashiers: cashiers}
+    state = if !is_nil(cashier_index) do
+      cashiers = List.replace_at(state.cashiers, cashier_index, {cashier, flag})
+      %{state | cashiers: cashiers}
+    end
     {:reply, :ok, state}
   end
 
@@ -88,7 +90,7 @@ defmodule Shopping.CashierPool do
       state.cashiers
       |> Enum.find(&match?({^cashier, _}, &1))
 
-      cashiers = List.delete(state.cashiers, cashier_entry)
+    cashiers = List.delete(state.cashiers, cashier_entry)
     state = %{state | cashiers: cashiers}
 
     {:reply, :ok, state}
