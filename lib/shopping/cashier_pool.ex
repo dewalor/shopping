@@ -1,14 +1,17 @@
 defmodule Shopping.CashierPool do
   use GenServer
+  require Logger
   alias Shopping.Cashier
   @max 10000
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, [], opts)
   end
 
   @spec init(any()) :: {:ok, %{cashiers: [], max: 10000}}
+  @impl true
   def init(_) do
+    Process.flag(:trap_exit, true)
     state = %{
       cashiers: [],
       max: @max,
@@ -20,20 +23,20 @@ defmodule Shopping.CashierPool do
   @doc """
     returns {:ok, pid} or {:error, message}
   """
-  def available_cashier do
-    GenServer.call(__MODULE__, {:fetch_available_cashier})
+  def available_cashier(server \\ __MODULE__) do
+    GenServer.call(server, {:fetch_available_cashier})
   end
 
-  def flag_cashier_busy(cashier) do
-    GenServer.call(__MODULE__, {:flag_cashier, :busy, cashier})
+  def flag_cashier_busy(server \\ __MODULE__, cashier) do
+    GenServer.call(server, {:flag_cashier, :busy, cashier})
   end
 
-  def flag_cashier_idle(cashier) do
-    GenServer.call(__MODULE__, {:flag_cashier, :idle, cashier})
+  def flag_cashier_idle(server \\ __MODULE__, cashier) do
+    GenServer.call(server, {:flag_cashier, :idle, cashier})
   end
 
-  def remove_cashier(cashier) do
-    GenServer.call(__MODULE__, {:remove_cashier, cashier})
+  def remove_cashier(server \\ __MODULE__, cashier) do
+    GenServer.call(server, {:remove_cashier, cashier})
   end
 
   # Callbacks
@@ -44,6 +47,9 @@ defmodule Shopping.CashierPool do
     3. if less than max, start a new cashier, add to the pool as idle and return {:ok, pid}
     4. if over max, return {:error, message}
   """
+  #def handle_call({:fetch_available_cashier}, _from, state) when is_nil(state), do: {:reply, :ok, state}
+
+  @impl true
   def handle_call({:fetch_available_cashier}, _from, state) do
     idle_cashier =
       state.cashiers
@@ -69,7 +75,9 @@ defmodule Shopping.CashierPool do
     {:reply, {status, message}, state}
   end
 
-  def handle_call({:flag_cashier, _flag, _cashier}, _from, state) when state.cashiers == [], do: {:reply, :ok, state}
+  #def handle_call({:flag_cashier, _flag, _cashier}, _from, state) when is_nil(state), do: {:reply, :ok, state}
+
+  def handle_call({:flag_cashier, _flag, _cashier}, _from, %{cashiers: cashiers, max: _max} = state) when cashiers == [], do: {:reply, :ok, state}
 
   def handle_call({:flag_cashier, flag, cashier}, _from, state) do
     cashier_index =
@@ -82,6 +90,7 @@ defmodule Shopping.CashierPool do
     end
     {:reply, :ok, state}
   end
+  #def handle_call({:remove_cashier, _cashier}, _from, state) when is_nil(state), do: {:reply, :ok, state}
 
   def handle_call({:remove_cashier, _cashier}, _from, state) when state.cashiers == [], do: {:reply, :ok, state}
 
@@ -94,5 +103,11 @@ defmodule Shopping.CashierPool do
     state = %{state | cashiers: cashiers}
 
     {:reply, :ok, state}
+  end
+
+  @impl true
+  def terminate(reason, new_state) do
+    Logger.info "terminating #{reason}"
+    {:no_reply, new_state}
   end
 end

@@ -1,6 +1,14 @@
 defmodule CashierTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Shopping.Cashier
+
+  setup do
+    Application.stop(:shopping)
+    :ok = Application.start(:shopping)
+    # {:ok, _pid} = start_supervised(Shopping.Dispatcher)
+    # {:ok, _pid} = start_supervised(Shopping.CashierPool)
+    :ok
+  end
 
   test "gives the right total when given a valid product list" do
     {:ok, pid} = Cashier.start

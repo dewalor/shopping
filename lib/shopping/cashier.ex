@@ -1,5 +1,6 @@
 defmodule Shopping.Cashier do
   use GenServer
+  require Logger
   alias Shopping.Dispatcher
 
   def start do
@@ -38,5 +39,11 @@ defmodule Shopping.Cashier do
                 )
                 new_state = %{processed: processed, unprocessed: tail, basket_id: basket_id}
                 handle_call({:total, new_state}, from, new_state)
+  end
+
+  @impl true
+  def terminate(reason, new_state) do
+    Logger.info "terminating #{reason}"
+    {:no_reply, new_state}
   end
 end

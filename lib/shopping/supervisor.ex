@@ -8,7 +8,7 @@ defmodule Shopping.Supervisor do
   def init(_) do
     children = [
       {Shopping.Dispatcher, []},
-      {Shopping.CashierPool, []},
+      {Shopping.CashierPool, [name: Shopping.CashierPool]},
     ]
 
     Supervisor.init(children, strategy: :one_for_all)

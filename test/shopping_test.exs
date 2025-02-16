@@ -2,6 +2,19 @@ defmodule ShoppingTest do
   use ExUnit.Case, async: true
   doctest Shopping
 
+  setup do
+    case stop_supervised(Shopping.Dispatcher) do
+      {:error, :not_found} -> start_supervised(Shopping.Dispatcher)
+      {_, _} -> :ok
+    end
+
+    case stop_supervised(Shopping.CashierPool) do
+      {:error, :not_found} -> start_supervised(Shopping.CashierPool)
+      {_, _} -> :ok
+    end
+    :ok
+  end
+
   test "raises on an invalid basket data type at checkout" do
     assert_raise FunctionClauseError, fn ->
       Shopping.check_out(["SR1"])
