@@ -31,11 +31,7 @@ defmodule Shopping do
     basket_id = generate_basket_id()
     Dispatcher.scan_basket(%{items: items, basket_id: basket_id})
 
-    {:ok, total} = Dispatcher.get_total(basket_id)
-    case total do
-      x when is_integer(x) -> to_GBP_string(x)
-      error -> error
-    end
+    view_total(basket_id)
   end
 
   def view_total(basket_id) when Kernel.is_binary(basket_id) do
