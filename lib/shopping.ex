@@ -26,12 +26,17 @@ defmodule Shopping do
   end
 
   def check_out(basket) when Kernel.is_binary(basket) do
+    basket_id = start_scan(basket)
+    view_total(basket_id)
+  end
+
+  def start_scan(basket) when Kernel.is_binary(basket) do
     items = String.split(basket, ",", trim: true) |> validate_and_to_atom()
 
     basket_id = generate_basket_id()
     Dispatcher.scan_basket(%{items: items, basket_id: basket_id})
 
-    view_total(basket_id)
+    basket_id
   end
 
   def view_total(basket_id) when Kernel.is_binary(basket_id) do
