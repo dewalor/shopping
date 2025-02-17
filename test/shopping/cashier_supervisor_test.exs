@@ -3,15 +3,8 @@ defmodule CashierSupervisorTest do
   alias Shopping.Cashier
 
   setup do
-    case stop_supervised(Shopping.Dispatcher) do
-      {:error, :not_found} -> start_supervised(Shopping.Dispatcher)
-      {_, _} -> :ok
-    end
-
-    case stop_supervised(Shopping.CashierPool) do
-      {:error, :not_found} -> start_supervised(Shopping.CashierPool)
-      {_, _} -> :ok
-    end
+    Application.stop(:shopping)
+    :ok = Application.start(:shopping)
     :ok
   end
 
@@ -19,8 +12,10 @@ defmodule CashierSupervisorTest do
     for _n <- 1..1000 do
       {:ok, pid} = Cashier.start
       basket_id = :rand.uniform(9999999999999999)
-      assert Cashier.total(pid, %{items: [:GR1,:GR1], basket_id: basket_id}) == 311
-      assert is_pid(pid)
+      :ok = Cashier.calculate_total(pid, %{items: [:GR1,:GR1], basket_id: basket_id})
+      state = :sys.get_state(pid)
+      :timer.sleep 50
+      assert state.total == 311
     end
   end
 end

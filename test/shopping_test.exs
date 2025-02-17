@@ -3,15 +3,8 @@ defmodule ShoppingTest do
   doctest Shopping
 
   setup do
-    case stop_supervised(Shopping.Dispatcher) do
-      {:error, :not_found} -> start_supervised(Shopping.Dispatcher)
-      {_, _} -> :ok
-    end
-
-    case stop_supervised(Shopping.CashierPool) do
-      {:error, :not_found} -> start_supervised(Shopping.CashierPool)
-      {_, _} -> :ok
-    end
+    Application.stop(:shopping)
+    :ok = Application.start(:shopping)
     :ok
   end
 

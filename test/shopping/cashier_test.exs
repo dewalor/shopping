@@ -5,15 +5,16 @@ defmodule CashierTest do
   setup do
     Application.stop(:shopping)
     :ok = Application.start(:shopping)
-    # {:ok, _pid} = start_supervised(Shopping.Dispatcher)
-    # {:ok, _pid} = start_supervised(Shopping.CashierPool)
     :ok
   end
 
-  test "gives the right total when given a valid product list" do
+  test "updates state with the right total when given a valid product list" do
     {:ok, pid} = Cashier.start
     basket_id = :rand.uniform(9999999999999999)
-    assert Cashier.total(pid, %{items: [:GR1,:GR1], basket_id: basket_id}) == 311
+    :ok = Cashier.calculate_total(pid, %{items: [:GR1,:GR1], basket_id: basket_id})
+    state = :sys.get_state(pid)
+    :timer.sleep 50
+    assert state.total == 311
   end
 
   #TODO

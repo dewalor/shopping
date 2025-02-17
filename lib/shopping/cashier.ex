@@ -7,8 +7,8 @@ defmodule Shopping.Cashier do
     GenServer.start(__MODULE__, [])
   end
 
-  def total(pid,  %{items: items, basket_id: basket_id}) when is_list items do
-    GenServer.call(pid, {:total, %{processed: %{}, unprocessed: items, basket_id: basket_id}})
+  def calculate_total(pid,  %{items: items, basket_id: basket_id}) when is_list items do
+    GenServer.cast(pid, {:calculate_total, %{processed: %{}, unprocessed: items, basket_id: basket_id}})
   end
 
   @impl true
@@ -18,18 +18,20 @@ defmodule Shopping.Cashier do
     {:ok, initial_state}
   end
 
-  def handle_call({:total, %{processed: processed, unprocessed: [], basket_id: basket_id}}, _from, _state) do
+  @impl true
+  def handle_cast({:calculate_total, %{processed: processed, unprocessed: [], basket_id: basket_id}}, _state) do
     total = Map.values(processed)
               |> Enum.map(fn {_, product_total} -> product_total end)
               |> Enum.sum()
 
-    send(Dispatcher, {:basket_totaled, %{total: total, processed: processed, basket_id: basket_id}})
+    new_state = %{total: total, processed: processed, unprocessed: [], basket_id: basket_id}
+    send(Dispatcher, {:basket_totaled, new_state})
     send(Dispatcher, {:cashier_idle, self()})
-    {:reply, total, %{processed: processed, unprocessed: [], basket_id: basket_id}}
+   {:noreply, new_state}
   end
 
   @impl true
-  def handle_call({:total, %{processed: processed, unprocessed: [product | tail], basket_id: basket_id}}, from, _state) do
+  def handle_cast({:calculate_total, %{processed: processed, unprocessed: [product | tail], basket_id: basket_id}}, _state) do
     # processed = %{product: {total quantity, total price}}
     processed = Map.update(
       processed,
@@ -38,7 +40,7 @@ defmodule Shopping.Cashier do
                   fn {qty, total_price} -> {qty + 1, Shopping.calculate_total_price(product, qty + 1, total_price)} end
                 )
                 new_state = %{processed: processed, unprocessed: tail, basket_id: basket_id}
-                handle_call({:total, new_state}, from, new_state)
+                handle_cast({:calculate_total, new_state}, new_state)
   end
 
   @impl true
