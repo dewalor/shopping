@@ -39,7 +39,10 @@ defmodule Shopping.Dispatcher do
 
         new_state = assign_basket(state, basket, cashier)
         CashierPool.flag_cashier_busy(cashier)
-        Cashier.calculate_total(cashier, basket)
+        total = Cashier.calculate_total(cashier, basket)
+        totaled_basket = Map.put_new(basket, :total, total)
+        new_state = Map.update(new_state, :checked_out_baskets, [totaled_basket], &([totaled_basket | &1]) )
+
         {:noreply, new_state}
       {:error, message} ->
         IO.puts "#{message}"
@@ -53,23 +56,12 @@ defmodule Shopping.Dispatcher do
 
   @impl true
   def handle_call({:get_total, id}, _from, state) do
-    total = state.checked_out_baskets
+    basket = state.checked_out_baskets
       |> Enum.find(fn basket -> basket.basket_id == id end)
-      |> Map.fetch(:total)
+    if basket == nil, do: Shopping.Dispatcher.get_total(id)
+    total = Map.fetch(basket, :total)
+
     {:reply, total, state}
-  end
-
-  @impl true
-  def handle_info({:basket_totaled, totaled_basket}, %{assignments: assignments, checked_out_baskets: checked_out_baskets, baskets_buffer: baskets_buffer}) do
-    checked_out_basket =
-       assignments
-       |> Enum.filter(fn({basket, cashier}) -> basket == totaled_basket.basket_id && cashier == totaled_basket.cashier end)
-
-    assignments = assignments -- checked_out_basket
-    checked_out_baskets = [ totaled_basket | checked_out_baskets]
-    state = %{assignments: assignments, checked_out_baskets: checked_out_baskets, baskets_buffer: baskets_buffer}
-
-    {:noreply, state}
   end
 
   @impl true

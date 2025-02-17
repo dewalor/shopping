@@ -11,10 +11,8 @@ defmodule CashierTest do
   test "updates state with the right total when given a valid product list" do
     {:ok, pid} = Cashier.start
     basket_id = :rand.uniform(9999999999999999)
-    :ok = Cashier.calculate_total(pid, %{items: [:GR1,:GR1], basket_id: basket_id})
-    state = :sys.get_state(pid)
-    :timer.sleep 50
-    assert state.total == 311
+    total = Cashier.calculate_total(pid, %{items: [:GR1,:GR1], basket_id: basket_id})
+    assert total == 311
   end
 
   #TODO
