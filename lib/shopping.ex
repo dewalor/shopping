@@ -99,4 +99,12 @@ defmodule Shopping do
   defp calculate_discount(_, _, _) do
     0
   end
+
+  def generate_random_string() do
+    :crypto.strong_rand_bytes(32)
+    |> Base.url_encode64()
+    |> String.replace(~r/[-_\=]/, "")
+    |> Kernel.binary_part(0, 32)
+    |> String.to_atom()
+  end
 end
