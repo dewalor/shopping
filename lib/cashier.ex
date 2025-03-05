@@ -9,8 +9,6 @@ defmodule Cashier do
   end
 
   def total(pid) do
-  IO.puts("^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-    IO.inspect(pid, label: "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPID------------------------------")
     GenServer.call(pid, :total)
   end
 
@@ -22,6 +20,7 @@ defmodule Cashier do
   @impl true
   def init({%{}, basket, state_pid}) when is_list basket do
     Process.flag(:trap_exit, true)
+
     initial_state = {%{}, basket, state_pid} # {processed/checked out, unprocessed, state_pid}
     {:ok, initial_state}
   end
@@ -38,7 +37,6 @@ defmodule Cashier do
 
   @impl true
   def handle_call(:total, from, {processed, [product | tail] = _unprocessed, state_pid}) do
-  IO.inspect(state_pid, label: "state pid------------------------------------------------------------")
     # processed = %{product: {total quantity, total price}}
     processed = Map.update(
                   processed,
@@ -53,12 +51,12 @@ defmodule Cashier do
   end
 
   @impl true
-  def handle_info({_, _from, reason}, state) do
+  def handle_info({_tag, _from, reason}, state) do
     {:stop, reason, state}
   end
 
   @impl true
-  def terminate(reason, {_processed, _unprocessed, state_pid} = new_state) do
+  def terminate(_reason, {_processed, _unprocessed, state_pid} = new_state) do
  #   Logger.info "terminating #{reason}"
     CashierState.update(state_pid, new_state)
     {:no_reply, new_state}

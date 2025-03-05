@@ -4,7 +4,13 @@ defmodule CashierStateTest do
   test "stores and gets state" do
     {:ok, state_pid_309} = start_supervised({CashierState, [:CashierState309]})
 
-    start_supervised(CashierSupervisor)
+    # Use a unique name for the CashierSupervisor
+    cashier_supervisor_name = :"TestCashierSupervisor_#{:erlang.unique_integer([:positive])}"
+    cashier_supervisor_child_spec = %{
+      id: CashierSupervisor,
+      start: {CashierSupervisor, :start_link, [[cashier_supervisor_name]]}
+    }
+    {:ok, _} = start_supervised(cashier_supervisor_child_spec)
     {:ok, pid_1} = start_supervised({Cashier, [[:SR1,:SR1,:SR1], state_pid_309]})
 
     GenServer.call(pid_1, :total)
@@ -15,6 +21,14 @@ defmodule CashierStateTest do
   test "initializes with the correct state" do
     {:ok, state_pid_9} = start_supervised({CashierState, [:CashierState9]})
 
+    # Use a unique name for the CashierSupervisor
+    cashier_supervisor_name = :"TestCashierSupervisor_#{:erlang.unique_integer([:positive])}"
+    cashier_supervisor_child_spec = %{
+      id: CashierSupervisor,
+      start: {CashierSupervisor, :start_link, [[cashier_supervisor_name]]}
+    }
+    {:ok, _} = start_supervised(cashier_supervisor_child_spec)
+
     state = CashierState.get(state_pid_9)
     assert Map.get(state, :processed) == %{}
     assert Map.get(state, :unprocessed) == []
@@ -23,6 +37,14 @@ defmodule CashierStateTest do
 
   test "updates state" do
     {:ok, state_pid_7} = start_supervised({CashierState, [:CashierState7]})
+
+    # Use a unique name for the CashierSupervisor
+    cashier_supervisor_name = :"TestCashierSupervisor_#{:erlang.unique_integer([:positive])}"
+    cashier_supervisor_child_spec = %{
+      id: CashierSupervisor,
+      start: {CashierSupervisor, :start_link, [[cashier_supervisor_name]]}
+    }
+    {:ok, _} = start_supervised(cashier_supervisor_child_spec)
 
     CashierState.update(state_pid_7, {%{GR1: {2,311}}, [], state_pid_7})
     state = CashierState.get(state_pid_7)

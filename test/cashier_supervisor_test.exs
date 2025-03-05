@@ -2,18 +2,30 @@ defmodule CashierSupervisorTest do
   use ExUnit.Case, async: true
 
   test "starts a Cashier child with the provided products and state_pid" do
-    state_child_spec = %{
+    # Generate unique names for this test
+    state_supervisor_name = :"TestCashierStateSupervisor_#{:erlang.unique_integer([:positive])}"
+    cashier_supervisor_name = :"TestCashierSupervisor_#{:erlang.unique_integer([:positive])}"
+    state_name = :"TestCashierState_#{:erlang.unique_integer([:positive])}"
+
+    state_supervisor_child_spec = %{
       id: CashierStateSupervisor,
-      start: {CashierStateSupervisor, :start_link, [[:TestCashierStateSupervisor]]}
+      start: {CashierStateSupervisor, :start_link, [[state_supervisor_name]]}
     }
 
-    state_pid = start_supervised(state_child_spec)
+    {:ok, _state_supervisor_pid} = start_supervised(state_supervisor_child_spec)
 
-    child_spec = %{
+    state_child_spec = %{
+      id: CashierState,
+      start: {CashierState, :start_link, [[state_name]]}
+    }
+
+    {:ok, state_pid} = start_supervised(state_child_spec)
+
+    cashier_supervisor_child_spec = %{
       id: CashierSupervisor,
-      start: {CashierSupervisor, :start_link, [[:TestCashierSupervisor]]}
+      start: {CashierSupervisor, :start_link, [[cashier_supervisor_name]]}
     }
-    start_supervised!(child_spec)
+    {:ok, _} = start_supervised(cashier_supervisor_child_spec)
 
     products = [:GR1, :SR1, :CF1]  # Use atoms instead of strings
 
@@ -21,22 +33,39 @@ defmodule CashierSupervisorTest do
 
     assert is_pid(cashier_pid)
     # Verify the cashier processes the products correctly
-    IO.inspect(cashier_pid, label: "*******************************************************")
     total = GenServer.call(cashier_pid, :total)
-    IO.inspect(total, label: "TOTAL:::::::::::::::::::::::::::::::::::::::::")
+
     assert is_integer(total)
     assert total > 0
   end
 
   test "supervisor restarts child when it crashes" do
-    start_supervised(CashierStateSupervisor)
-    start_supervised(CashierSupervisor)
+    # Generate unique names for this test
+    state_supervisor_name = :"TestCashierStateSupervisor_#{:erlang.unique_integer([:positive])}"
+    cashier_supervisor_name = :"TestCashierSupervisor_#{:erlang.unique_integer([:positive])}"
+
+    state_supervisor_child_spec = %{
+      id: CashierStateSupervisor,
+      start: {CashierStateSupervisor, :start_link, [[state_supervisor_name]]}
+    }
+    cashier_supervisor_child_spec = %{
+      id: CashierSupervisor,
+      start: {CashierSupervisor, :start_link, [[cashier_supervisor_name]]}
+    }
+
+    {:ok, _} = start_supervised(state_supervisor_child_spec)
+    {:ok, _supervisor_pid} = start_supervised(cashier_supervisor_child_spec)
 
     {:ok, state_pid} = CashierStateSupervisor.start_child({CashierState, []})
-    {:ok, cashier_pid} = CashierSupervisor.start_child({Cashier, [[:GR1], state_pid]})  # Use atom instead of string
+
+    # Start the cashier directly with the supervisor
+    {:ok, cashier_pid} = DynamicSupervisor.start_child(
+      cashier_supervisor_name,
+      {Cashier, [[:GR1], state_pid]}
+    )
 
     # Get the supervisor's children before crash
-    children_before = DynamicSupervisor.which_children(CashierSupervisor)
+    children_before = DynamicSupervisor.which_children(cashier_supervisor_name)
 
     # Kill the child process
     Process.exit(cashier_pid, :kill)
@@ -45,9 +74,9 @@ defmodule CashierSupervisorTest do
     :timer.sleep(100)
 
     # Get the supervisor's children after crash
-    children_after = DynamicSupervisor.which_children(CashierSupervisor)
+    children_after = DynamicSupervisor.which_children(cashier_supervisor_name)
 
-    # Verify the number of children remains the same
+    assert length(children_before) > 0
     assert length(children_before) == length(children_after)
 
     # Verify the PIDs are different (indicating a restart)
